@@ -1,0 +1,84 @@
+[project]
+name = "novichok-backend"
+version = "0.1.0"
+description = "Демонстрация управляемой адаптации сотрудников"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "aiosqlite>=0.20,<1",
+    "alembic>=1.14,<2",
+    "asyncpg>=0.30,<1",
+    "fastapi>=0.115,<1",
+    "pydantic-settings>=2.7,<3",
+    "sqlalchemy[asyncio]>=2.0.36,<2.1",
+    "structlog>=25.1,<26",
+    "uvicorn>=0.34,<1",
+]
+
+[dependency-groups]
+dev = [
+    "asgi-lifespan>=2.1,<3",
+    "httpx>=0.28,<1",
+    "import-linter>=2.3,<3",
+    "mypy>=1.14,<2",
+    "pytest>=8.3,<10",
+    "pytest-asyncio>=0.25,<2",
+    "ruff>=0.9,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "N", "C4", "TID", "ANN", "RUF", "C90"]
+extend-select = ["D1", "PLR0911", "PLR0912"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"__future__.annotations" = { msg = "Используйте нативные типы Python 3.13 без postponed annotations." }
+
+[tool.ruff.lint.mccabe]
+max-complexity = 3
+
+[tool.ruff.lint.pylint]
+max-returns = 4
+max-branches = 6
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["app", "tests"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["aiosqlite.*"]
+ignore_missing_imports = true
+
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "HTTP зависит от сценариев, сценарии от сущностей, сущности от инфраструктуры"
+type = "layers"
+layers = ["app.web", "app.workflows", "app.entities", "app.core"]
+
+[[tool.importlinter.contracts]]
+name = "Нижние слои не собирают приложение"
+type = "forbidden"
+source_modules = ["app.core", "app.entities", "app.workflows", "app.web"]
+forbidden_modules = ["app.app_factory", "app.main"]

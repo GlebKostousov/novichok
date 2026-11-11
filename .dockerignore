@@ -1,0 +1,27 @@
+.git
+.env
+.env.*
+**/.venv
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/test-results
+**/playwright-report
+artifacts
+
+# Локальные резервные копии и сертификаты
+backups/
+novichok-backup*.sql
+*.dump
+*.pem
+*.key
+
+.serena/
+deploy/
+docs/local/

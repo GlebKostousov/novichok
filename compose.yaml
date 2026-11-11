@@ -1,0 +1,51 @@
+name: novichok
+services:
+  db:
+    image: postgres:17-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994
+    environment:
+      POSTGRES_DB: novichok
+      POSTGRES_USER: novichok
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/configure.py first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U novichok -d novichok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build: .
+    environment:
+      NOVICHOK_DATABASE_URL: postgresql+asyncpg://novichok:${POSTGRES_PASSWORD}@db:5432/novichok
+      NOVICHOK_COOKIE_SECURE: ${NOVICHOK_COOKIE_SECURE:-false}
+      NOVICHOK_ALLOWED_HOSTS: ${NOVICHOK_ALLOWED_HOSTS:-["localhost","127.0.0.1"]}
+      NOVICHOK_MAX_WORKSPACES: ${NOVICHOK_MAX_WORKSPACES:-500}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:

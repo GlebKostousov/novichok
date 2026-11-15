@@ -1,9 +1,9 @@
 """Собери приложение, которому явно принадлежат ресурсы и HTTP-маршруты."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.clock import Clock, SystemClock
@@ -16,6 +16,20 @@ from app.web import demo, employees, health
 from app.web.middleware import ApiBoundaryMiddleware
 from app.web.runtime import Runtime
 from app.web.static import register_static
+
+
+async def _security_headers_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Примени строгие заголовки безопасности ко всем HTTP-ответам."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), camera=(), microphone=(), payment=()"
+    )
+    return response
 
 
 def create_app(
@@ -69,6 +83,7 @@ def create_app(
     register_error_handlers(app)
     app.add_middleware(ApiBoundaryMiddleware)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=config.allowed_hosts)
+    app.middleware("http")(_security_headers_middleware)
     app.include_router(demo.router, prefix="/api")
     app.include_router(employees.router, prefix="/api")
     app.include_router(health.router, prefix="/api")
